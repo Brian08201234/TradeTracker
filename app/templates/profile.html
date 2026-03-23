@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-4 fw-bold">
+            <i class="fas fa-user-circle"></i> Profile Settings
+        </h1>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-info-circle"></i> Personal Information
+            </div>
+            <div class="card-body">
+                {% if current_user.is_paid %}
+                <div class="alert alert-success mb-3">
+                    <i class="fas fa-crown me-2"></i>
+                    <strong>🎉 You are a Valued Pro Member!</strong><br>
+                    You have unlimited access to all features.
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-3">
+                    <i class="fas fa-crown me-2"></i>
+                    <strong>Upgrade to Pro</strong><br>
+                    <a href="/pricing" class="alert-link">Upgrade now</a> to unlock unlimited trades, screenshots, and advanced analytics!
+                </div>
+                {% endif %}
+                
+                <!-- 用戶名修改表單 -->
+                <form action="{{ url_for('auth.change_username') }}" method="POST" class="mb-4">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="username" name="new_username" value="{{ user.username }}" required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Update
+                            </button>
+                        </div>
+                        <small class="text-muted">You can change your username anytime</small>
+                    </div>
+                </form>
+                
+                <!-- 郵箱修改表單 -->
+                <form action="{{ url_for('auth.update_profile') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <div class="input-group">
+                            <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Update
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="default_currency" class="form-label">Default Currency</label>
+                        <select class="form-control" id="default_currency" name="default_currency">
+                            <option value="USD" {% if user.default_currency == 'USD' %}selected{% endif %}>USD - US Dollar</option>
+                            <option value="EUR" {% if user.default_currency == 'EUR' %}selected{% endif %}>EUR - Euro</option>
+                            <option value="GBP" {% if user.default_currency == 'GBP' %}selected{% endif %}>GBP - British Pound</option>
+                            <option value="JPY" {% if user.default_currency == 'JPY' %}selected{% endif %}>JPY - Japanese Yen</option>
+                            <option value="AUD" {% if user.default_currency == 'AUD' %}selected{% endif %}>AUD - Australian Dollar</option>
+                            <option value="CAD" {% if user.default_currency == 'CAD' %}selected{% endif %}>CAD - Canadian Dollar</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-save"></i> Update Profile
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <i class="fas fa-key"></i> Change Password
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('auth.change_password') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="current_password" name="current_password" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="fas fa-key"></i> Change Password
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-chart-line"></i> Account Stats
+            </div>
+            <div class="card-body">
+                <p><strong>Member Since:</strong> 
+                    {% if user.created_at %}
+                        {% if user.created_at is string %}
+                            {{ user.created_at[:10] }}
+                        {% else %}
+                            {{ user.created_at.strftime('%Y-%m-%d') }}
+                        {% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </p>
+                <p><strong>User ID:</strong> 
+                    <span class="text-white">{{ user.display_id() }}</span>
+                </p>
+                <p><strong>Plan:</strong> 
+                    {% if user.is_paid %}
+                        <span class="badge bg-success"><i class="fas fa-crown"></i> Pro Member</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Free</span>
+                        <a href="/pricing" class="btn btn-sm btn-primary ms-2">Upgrade</a>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-4 fw-bold">
+            <i class="fas fa-tachometer-alt text-primary"></i> Dashboard
+        </h1>
+        <p class="lead text-muted">Welcome back, <strong>{{ current_user.username }}</strong>!</p>
+    </div>
+</div>
+
+{% if not current_user.is_paid and current_user.username != 'admin' %}
+<!-- Upgrade Modal -->
+<div class="modal fade" id="upgradeModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title">
+                    <i class="fas fa-crown me-2"></i> Unlock Pro Features
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="fas fa-chart-line fa-4x text-primary mb-3"></i>
+                <h3>Upgrade to TradeTracker Pro</h3>
+                <p class="text-secondary mt-2">Get unlimited access to all features:</p>
+                <ul class="list-unstyled mt-3 text-start">
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Unlimited trading accounts</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Unlimited trade entries</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Screenshot uploads</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Strategy tags & analysis</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Emotion tracking & psychology</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Advanced metrics (Sharpe, Drawdown)</li>
+                </ul>
+                <div class="display-6 fw-bold text-primary mt-3">$2.99<span class="fs-6 text-secondary">/month</span></div>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pb-4">
+                <form action="/create-checkout-session" method="POST" class="w-100">
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-rocket me-2"></i> Upgrade Now
+                    </button>
+                </form>
+                <button class="btn btn-outline-secondary mt-2" data-bs-dismiss="modal">
+                    Maybe later
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var upgradeModal = new bootstrap.Modal(document.getElementById('upgradeModal'));
+    upgradeModal.show();
+});
+</script>
+{% endif %}
+
+{% if session.current_account %}
+<div class="row">
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stat-value">{{ stats.account_name if stats else 'No account' }}</div>
+            <div class="stat-label">Account Name</div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stat-value">${{ "{:,.2f}".format(stats.balance) if stats else '0.00' }}</div>
+            <div class="stat-label">Current Balance</div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-chart-simple"></i>
+            </div>
+            <div class="stat-value {% if stats.total_pnl > 0 %}profit{% elif stats.total_pnl < 0 %}loss{% endif %}">
+                ${{ "{:+,.2f}".format(stats.total_pnl) if stats else '0.00' }}
+            </div>
+            <div class="stat-label">Total P&L</div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-percent"></i>
+            </div>
+            <div class="stat-value">{{ stats.win_rate if stats else '0%' }}</div>
+            <div class="stat-label">Win Rate</div>
+        </div>
+    </div>
+</div>
+
+<!-- Advanced Metrics -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fas fa-chart-line"></i> Sharpe Ratio
+            </div>
+            <div class="card-body text-center">
+                <div class="display-4 fw-bold" id="sharpeValue">--</div>
+                <div class="text-muted mt-2" id="sharpeRating"></div>
+                <small class="text-muted">Risk-adjusted return measure</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fas fa-arrow-trend-down"></i> Max Drawdown
+            </div>
+            <div class="card-body text-center">
+                <div class="display-4 fw-bold loss" id="maxDrawdown">--</div>
+                <div class="text-muted mt-2">Maximum loss from peak</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fas fa-chart-simple"></i> Profit Factor
+            </div>
+            <div class="card-body text-center">
+                <div class="display-4 fw-bold" id="profitFactor">--</div>
+                <div class="text-muted mt-2">Gross Profit / Gross Loss</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-line"></i> Equity Curve
+            </div>
+            <div class="card-body">
+                <canvas id="equityChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-pie"></i> Win/Loss Ratio
+            </div>
+            <div class="card-body">
+                <canvas id="winLossChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-bolt"></i> Quick Actions
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <a href="/add_trade" class="btn btn-success w-100 py-3">
+                            <i class="fas fa-plus-circle fa-2x d-block mb-2"></i>
+                            Add New Trade
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <a href="/view_trades" class="btn btn-primary w-100 py-3">
+                            <i class="fas fa-list fa-2x d-block mb-2"></i>
+                            View Trades
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <a href="/calendar" class="btn btn-info w-100 py-3 text-white">
+                            <i class="fas fa-calendar-alt fa-2x d-block mb-2"></i>
+                            Calendar View
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Fetch advanced metrics
+fetch('/api/advanced-metrics')
+    .then(response => response.json())
+    .then(data => {
+        // Sharpe Ratio
+        const sharpe = data.sharpe_ratio;
+        document.getElementById('sharpeValue').innerHTML = sharpe;
+        
+        let sharpeRating = '';
+        let sharpeClass = '';
+        if (sharpe > 2) {
+            sharpeRating = 'Excellent! 🎯';
+            sharpeClass = 'profit';
+        } else if (sharpe > 1) {
+            sharpeRating = 'Very Good 👍';
+            sharpeClass = 'profit';
+        } else if (sharpe > 0.5) {
+            sharpeRating = 'Good 📈';
+            sharpeClass = '';
+        } else if (sharpe > 0) {
+            sharpeRating = 'Fair 📊';
+            sharpeClass = '';
+        } else {
+            sharpeRating = 'Needs Improvement ⚠️';
+            sharpeClass = 'loss';
+        }
+        document.getElementById('sharpeRating').innerHTML = `<span class="${sharpeClass}">${sharpeRating}</span>`;
+        
+        // Max Drawdown
+        document.getElementById('maxDrawdown').innerHTML = `${data.max_drawdown}%`;
+        
+        // Profit Factor
+        const pf = data.profit_factor;
+        document.getElementById('profitFactor').innerHTML = pf === 999999 ? '∞' : pf;
+    });
+
+// Equity Curve
+fetch('/api/equity-curve')
+    .then(response => response.json())
+    .then(data => {
+        const ctx = document.getElementById('equityChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Equity Curve',
+                    data: data.values,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `$${context.raw.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+
+// Win/Loss Chart
+const winRate = parseFloat('{{ stats.win_rate if stats else "0" }}'.replace('%', ''));
+const lossRate = 100 - winRate;
+const ctx2 = document.getElementById('winLossChart').getContext('2d');
+new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+        labels: ['Winning Trades', 'Losing Trades'],
+        datasets: [{
+            data: [winRate, lossRate],
+            backgroundColor: ['#10b981', '#ef4444'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+            }
+        }
+    }
+});
+</script>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="card text-center">
+            <div class="card-body py-5">
+                <i class="fas fa-wallet fa-4x text-muted mb-3"></i>
+                <h3>No Account Selected</h3>
+                <p class="text-muted">Please select or create an account to get started</p>
+                <a href="/accounts" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus-circle"></i> Manage Accounts
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-4 fw-bold">
+            <i class="fas fa-wallet text-primary"></i> Account Management
+        </h1>
+        <p class="lead text-muted">Manage your trading accounts</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-list"></i> Your Accounts
+            </div>
+            <div class="card-body p-0">
+                {% if accounts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Account Name</th>
+                                    <th>Balance</th>
+                                    <th>Total P&L</th>
+                                    <th>Trades</th>
+                                    <th>Currency</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for acc in accounts %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ acc.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ acc.id }}</small>
+                                        {% if session.current_account == acc.id %}
+                                            <span class="badge bg-success ms-2">Active</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="fw-bold">${{ "{:,.2f}".format(acc.balance) }}</td>
+                                    <td class="{% if acc.total_pnl > 0 %}profit{% elif acc.total_pnl < 0 %}loss{% endif %} fw-bold">
+                                        ${{ "{:+,.2f}".format(acc.total_pnl) }}
+                                    </td>
+                                    <td>{{ acc.total_trades }}</td>
+                                    <td>{{ acc.currency }}</td>
+                                    <td>
+                                        {% if session.current_account == acc.id %}
+                                            <button class="btn btn-sm btn-success" disabled>
+                                                <i class="fas fa-check-circle"></i> Active
+                                            </button>
+                                        {% else %}
+                                            <form action="/switch_account" method="POST" style="display: inline;">
+                                                <input type="hidden" name="account_id" value="{{ acc.id }}">
+                                                <button type="submit" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-check"></i> Use
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        <button type="button" class="btn btn-sm btn-danger" 
+                                                onclick="confirmDeleteAccount('{{ acc.id }}', '{{ acc.name }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-wallet fa-3x text-muted mb-3"></i>
+                        <p>No accounts yet. Create your first account!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-plus-circle"></i> Create New Account
+            </div>
+            <div class="card-body">
+                <form action="/create_account" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Account Name</label>
+                        <input type="text" class="form-control" name="name" required placeholder="e.g., Live Trading">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Initial Balance</label>
+                        <input type="number" class="form-control" name="initial_balance" value="0" step="0.01">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Currency</label>
+                        <select class="form-control" name="currency">
+                            <option value="USD">🇺🇸 USD - US Dollar</option>
+                            <option value="EUR">🇪🇺 EUR - Euro</option>
+                            <option value="GBP">🇬🇧 GBP - British Pound</option>
+                            <option value="JPY">🇯🇵 JPY - Japanese Yen</option>
+                            <option value="AUD">🇦🇺 AUD - Australian Dollar</option>
+                            <option value="CAD">🇨🇦 CAD - Canadian Dollar</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Notes</label>
+                        <textarea class="form-control" name="notes" rows="3" placeholder="Optional notes about this account"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-save"></i> Create Account
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="fas fa-info-circle"></i> Pro Tips
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Use multiple accounts for different strategies
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Demo vs Live account separation
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Track different markets separately
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Delete Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>⚠️ Warning: This will delete the entire account and ALL its trades!</strong></p>
+                <p>This action cannot be undone. The account and all associated data will be permanently removed.</p>
+                <div class="alert alert-warning mt-3">
+                    <label class="form-label">Type <strong class="text-danger">YES</strong> to confirm deletion of <strong id="accountName"></strong>:</label>
+                    <input type="text" id="confirmDeleteAccountInput" class="form-control" placeholder="YES">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="submitDeleteAccount()">Delete Account</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+var accountToDelete = null;
+
+function confirmDeleteAccount(accountId, accountName) {
+    accountToDelete = accountId;
+    document.getElementById('accountName').textContent = accountName;
+    var modal = new bootstrap.Modal(document.getElementById('deleteAccountModal'));
+    modal.show();
+}
+
+function submitDeleteAccount() {
+    var confirmText = document.getElementById('confirmDeleteAccountInput').value;
+    if (confirmText === 'YES') {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/delete_account/' + accountToDelete;
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'confirm';
+        input.value = 'YES';
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    } else {
+        alert('Please type YES to confirm deletion');
+    }
+}
+</script>
+{% endblock %}

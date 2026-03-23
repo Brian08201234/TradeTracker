@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-4 fw-bold">
+            <i class="fas fa-tags text-primary"></i> Strategy Analysis
+        </h1>
+        <p class="lead text-muted">Analyze performance by strategy tags</p>
+    </div>
+</div>
+
+{% if strategies %}
+<div class="row">
+    {% for tag, data in strategies.items() %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-tag"></i> #{{ tag }}
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="stat-label text-muted">Total P&L</div>
+                        <div class="h5 {% if data.total_pnl > 0 %}profit{% elif data.total_pnl < 0 %}loss{% endif %}">
+                            ${{ "{:+,.2f}".format(data.total_pnl) }}
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-label text-muted">Total Trades</div>
+                        <div class="h5">{{ data.count }}</div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="stat-label text-muted">Win Rate</div>
+                        <div class="h5 profit">{{ data.win_rate }}%</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-label text-muted">Avg P&L</div>
+                        <div class="h5">{{ "${:+,.2f}".format(data.avg_pnl) }}</div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="stat-label text-muted">Sharpe Ratio</div>
+                        <div class="h6 {% if data.sharpe > 1 %}profit{% elif data.sharpe < 0 %}loss{% endif %}">
+                            {{ data.sharpe }}
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-label text-muted">Max Drawdown</div>
+                        <div class="h6 loss">{{ data.max_drawdown }}%</div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <div class="stat-label text-muted">Profit Factor</div>
+                        <div class="h6 {% if data.profit_factor > 1.5 %}profit{% elif data.profit_factor < 1 %}loss{% endif %}">
+                            {% if data.profit_factor == 999999 %}∞{% else %}{{ data.profit_factor }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="card text-center">
+            <div class="card-body py-5">
+                <i class="fas fa-tags fa-4x text-muted mb-3"></i>
+                <h3>No Strategy Tags Found</h3>
+                <p class="text-muted">Add tags to your trades to see strategy analysis</p>
+                <a href="/add_trade" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus-circle"></i> Add Trade with Tags
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

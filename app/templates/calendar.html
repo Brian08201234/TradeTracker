@@ -1,0 +1,566 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-4 fw-bold">
+            <i class="fas fa-calendar-alt text-primary"></i> Trading Calendar
+        </h1>
+        <p class="lead text-muted">See at one glance which days you are making or losing money. Click a day to look at the trades.</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <select id="yearSelect" class="form-control">
+            {% for y in range(2020, 2027) %}
+                <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select id="monthSelect" class="form-control">
+            <option value="1" {% if month == 1 %}selected{% endif %}>January</option>
+            <option value="2" {% if month == 2 %}selected{% endif %}>February</option>
+            <option value="3" {% if month == 3 %}selected{% endif %}>March</option>
+            <option value="4" {% if month == 4 %}selected{% endif %}>April</option>
+            <option value="5" {% if month == 5 %}selected{% endif %}>May</option>
+            <option value="6" {% if month == 6 %}selected{% endif %}>June</option>
+            <option value="7" {% if month == 7 %}selected{% endif %}>July</option>
+            <option value="8" {% if month == 8 %}selected{% endif %}>August</option>
+            <option value="9" {% if month == 9 %}selected{% endif %}>September</option>
+            <option value="10" {% if month == 10 %}selected{% endif %}>October</option>
+            <option value="11" {% if month == 11 %}selected{% endif %}>November</option>
+            <option value="12" {% if month == 12 %}selected{% endif %}>December</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <button id="loadCalendarBtn" class="btn btn-primary w-100">
+            <i class="fas fa-sync-alt"></i> Load Calendar
+        </button>
+    </div>
+    <div class="col-md-3">
+        <button id="todayBtn" class="btn btn-outline-secondary w-100">
+            <i class="fas fa-calendar-check"></i> Today
+        </button>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4" id="statsCards" style="display: none;">
+    <div class="col-md-6 mb-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-chart-line"></i> Monthly Statistics
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="stat-label text-muted">Total P&L</div>
+                        <div class="h3" id="monthlyPnl">$0.00</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="stat-label text-muted">Total Trades</div>
+                        <div class="h3" id="monthlyTrades">0</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-label text-muted">Winning Days</div>
+                        <div class="h4 text-success" id="monthlyWinning">0</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-label text-muted">Losing Days</div>
+                        <div class="h4 text-danger" id="monthlyLosing">0</div>
+                    </div>
+                </div>
+                <div class="progress mt-3">
+                    <div id="monthlyWinRateBar" class="progress-bar bg-success" style="width: 0%"></div>
+                </div>
+                <div class="text-center mt-2">
+                    <small class="text-muted">Win Rate: <span id="monthlyWinRate">0</span>%</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-calendar-week"></i> Weekly Statistics
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr class="bg-light">
+                                <th>Week</th>
+                                <th>P&L</th>
+                                <th>Trades</th>
+                                <th>Win Rate</th>
+                                <th>Best Day</th>
+                            </tr>
+                        </thead>
+                        <tbody id="weeklyStats">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Calendar -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 id="monthDisplay" class="mb-0"></h4>
+            </div>
+            <div class="card-body p-0">
+                <div id="loading" class="text-center py-5" style="display: none;">
+                    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+                    <p class="mt-3">Loading calendar data...</p>
+                </div>
+                
+                <div id="calendarContainer" style="display: none;">
+                    <table class="table table-bordered calendar-table mb-0">
+                        <thead>
+                            <tr class="bg-light">
+                                <th>Mon</th>
+                                <th>Tue</th>
+                                <th>Wed</th>
+                                <th>Thu</th>
+                                <th>Fri</th>
+                                <th>Sat</th>
+                                <th>Sun</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calendarBody">
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div id="noData" class="alert alert-info text-center py-5" style="display: none;">
+                    <i class="fas fa-info-circle fa-3x mb-3"></i>
+                    <h4>No Trading Data</h4>
+                    <p>No trades found for this month.</p>
+                    <a href="/add_trade" class="btn btn-primary">Add Your First Trade</a>
+                </div>
+                
+                <div id="error" class="alert alert-danger text-center py-5" style="display: none;">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                    <h4>Error</h4>
+                    <p id="errorMessage"></p>
+                    <button class="btn btn-outline-danger mt-3" onclick="loadCalendar(currentYear, currentMonth)">
+                        <i class="fas fa-redo"></i> Try Again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trade Modal - 美化版 -->
+<div class="modal fade" id="tradeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none;">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-chart-line me-2"></i> <span id="modalDate"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="background: #111827;">
+                <!-- Daily Summary Card -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card" style="background: #1f2937; border: none;">
+                            <div class="card-body text-center">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <p class="text-muted mb-1">Daily P&L</p>
+                                        <h2 class="mb-0" id="dailyPnl" style="font-size: 2rem;"></h2>
+                                    </div>
+                                    <div class="col-6">
+                                        <p class="text-muted mb-1">Total Trades</p>
+                                        <h2 class="mb-0" id="dailyCount" style="font-size: 2rem;"></h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Trades List -->
+                <h6 class="text-muted mb-3">
+                    <i class="fas fa-list me-2"></i> Trade Details
+                </h6>
+                <div id="tradeList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Trades will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer" style="background: #1f2937; border-top: 1px solid #2d3748;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.calendar-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.calendar-table td {
+    height: 100px;
+    vertical-align: top;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #1a1f2e;
+    border-color: #2d3748;
+}
+
+.calendar-table td:hover {
+    background: #2d3748 !important;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+    position: relative;
+}
+
+.calendar-day-number {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #f1f5f9;
+}
+
+.calendar-pnl {
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.calendar-count {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.profit-bg {
+    background-color: rgba(16, 185, 129, 0.15);
+}
+
+.loss-bg {
+    background-color: rgba(239, 68, 68, 0.15);
+}
+
+.profit-text {
+    color: #10b981 !important;
+}
+
+.loss-text {
+    color: #ef4444 !important;
+}
+
+/* Trade Item Styles */
+.trade-item {
+    background: #1f2937;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+    border-left: 4px solid;
+}
+
+.trade-item:hover {
+    background: #2d3748;
+    transform: translateX(4px);
+}
+
+.trade-item.profit {
+    border-left-color: #10b981;
+}
+
+.trade-item.loss {
+    border-left-color: #ef4444;
+}
+
+.trade-symbol {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #f1f5f9;
+}
+
+.trade-direction {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: #374151;
+    color: #94a3b8;
+}
+
+.trade-direction.long {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.trade-direction.short {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.trade-time {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.trade-pnl {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.trade-notes {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #374151;
+}
+
+/* Custom scrollbar for trade list */
+#tradeList::-webkit-scrollbar {
+    width: 6px;
+}
+
+#tradeList::-webkit-scrollbar-track {
+    background: #1f2937;
+    border-radius: 3px;
+}
+
+#tradeList::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 3px;
+}
+
+#tradeList::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+}
+
+@media (max-width: 768px) {
+    .calendar-table td {
+        height: 70px;
+        padding: 4px;
+    }
+    
+    .trade-item {
+        padding: 10px 12px;
+    }
+}
+</style>
+
+<script>
+let currentYear = {{ year }};
+let currentMonth = {{ month }};
+let calendarData = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadCalendar(currentYear, currentMonth);
+});
+
+document.getElementById('loadCalendarBtn').addEventListener('click', function() {
+    currentYear = parseInt(document.getElementById('yearSelect').value);
+    currentMonth = parseInt(document.getElementById('monthSelect').value);
+    loadCalendar(currentYear, currentMonth);
+});
+
+document.getElementById('todayBtn').addEventListener('click', function() {
+    const today = new Date();
+    currentYear = today.getFullYear();
+    currentMonth = today.getMonth() + 1;
+    document.getElementById('yearSelect').value = currentYear;
+    document.getElementById('monthSelect').value = currentMonth;
+    loadCalendar(currentYear, currentMonth);
+});
+
+function loadCalendar(year, month) {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('calendarContainer').style.display = 'none';
+    document.getElementById('noData').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('statsCards').style.display = 'none';
+    
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    document.getElementById('monthDisplay').innerText = `${monthNames[month-1]} ${year}`;
+    
+    fetch(`/api/calendar-data/${year}/${month}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loading').style.display = 'none';
+            
+            if (data.error) {
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('errorMessage').innerText = data.error;
+                return;
+            }
+            
+            calendarData = data;
+            renderCalendar(year, month, data.days);
+            updateStatistics(data.days);
+            document.getElementById('statsCards').style.display = 'flex';
+        })
+        .catch(error => {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('errorMessage').innerText = error.message;
+        });
+}
+
+function renderCalendar(year, month, days) {
+    const firstDay = new Date(year, month - 1, 1).getDay();
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    let startOffset = firstDay === 0 ? 6 : firstDay - 1;
+    
+    let calendarHtml = '';
+    let dayCounter = 1;
+    
+    for (let week = 0; week < 6; week++) {
+        calendarHtml += '<tr>';
+        
+        for (let weekday = 0; weekday < 7; weekday++) {
+            if ((week === 0 && weekday < startOffset) || dayCounter > daysInMonth) {
+                calendarHtml += '<td></td>';
+            } else {
+                const dayData = days.find(d => d.day === dayCounter) || { pnl: 0, count: 0, trades: [] };
+                const pnl = dayData.pnl;
+                const count = dayData.count;
+                
+                let cellClass = '';
+                if (pnl > 0) cellClass = 'profit-bg';
+                else if (pnl < 0) cellClass = 'loss-bg';
+                
+                calendarHtml += `<td class="${cellClass}" onclick="showDayTrades(${dayCounter})">`;
+                calendarHtml += `<div class="calendar-day-number">${dayCounter}</div>`;
+                
+                if (count > 0) {
+                    const pnlClass = pnl > 0 ? 'profit-text' : (pnl < 0 ? 'loss-text' : '');
+                    calendarHtml += `<div class="calendar-pnl ${pnlClass}">$${pnl.toFixed(2)}</div>`;
+                    calendarHtml += `<div class="calendar-count">${count} trade${count > 1 ? 's' : ''}</div>`;
+                }
+                
+                calendarHtml += '</td>';
+                dayCounter++;
+            }
+        }
+        
+        calendarHtml += '</tr>';
+        
+        if (dayCounter > daysInMonth) break;
+    }
+    
+    document.getElementById('calendarBody').innerHTML = calendarHtml;
+    document.getElementById('calendarContainer').style.display = 'block';
+}
+
+function updateStatistics(days) {
+    const totalPnl = days.reduce((sum, d) => sum + d.pnl, 0);
+    const totalTrades = days.reduce((sum, d) => sum + d.count, 0);
+    const winningDays = days.filter(d => d.pnl > 0).length;
+    const losingDays = days.filter(d => d.pnl < 0).length;
+    const winRate = totalTrades > 0 ? (winningDays / days.filter(d => d.count > 0).length * 100).toFixed(1) : 0;
+    
+    document.getElementById('monthlyPnl').innerHTML = totalPnl >= 0 ? 
+        `<span class="profit-text">$${totalPnl.toFixed(2)}</span>` : 
+        `<span class="loss-text">$${totalPnl.toFixed(2)}</span>`;
+    document.getElementById('monthlyTrades').innerText = totalTrades;
+    document.getElementById('monthlyWinning').innerText = winningDays;
+    document.getElementById('monthlyLosing').innerText = losingDays;
+    document.getElementById('monthlyWinRate').innerText = winRate;
+    document.getElementById('monthlyWinRateBar').style.width = `${winRate}%`;
+    
+    const weeks = {};
+    for (let i = 0; i < days.length; i++) {
+        const day = days[i].day;
+        const weekNum = Math.ceil(day / 7);
+        if (!weeks[weekNum]) {
+            weeks[weekNum] = { pnl: 0, trades: 0, winning: 0, losing: 0, bestDay: { pnl: -Infinity, day: null } };
+        }
+        weeks[weekNum].pnl += days[i].pnl;
+        weeks[weekNum].trades += days[i].count;
+        if (days[i].pnl > 0) weeks[weekNum].winning++;
+        if (days[i].pnl < 0) weeks[weekNum].losing++;
+        if (days[i].pnl > weeks[weekNum].bestDay.pnl) {
+            weeks[weekNum].bestDay.pnl = days[i].pnl;
+            weeks[weekNum].bestDay.day = days[i].day;
+        }
+    }
+    
+    let weeklyHtml = '';
+    for (let week in weeks) {
+        const w = weeks[week];
+        const weekWinRate = w.trades > 0 ? (w.winning / (w.winning + w.losing) * 100).toFixed(1) : 0;
+        weeklyHtml += `
+            <tr>
+                <td><strong>Week ${week}</strong></td>
+                <td class="${w.pnl >= 0 ? 'profit-text' : 'loss-text'}">$${w.pnl.toFixed(2)}</td>
+                <td>${w.trades}</td>
+                <td>${weekWinRate}%</td>
+                <td>${w.bestDay.day ? `Day ${w.bestDay.day} ($${w.bestDay.pnl.toFixed(2)})` : '-'}</td>
+            </tr>
+        `;
+    }
+    
+    if (Object.keys(weeks).length === 0) {
+        weeklyHtml = '<tr><td colspan="5" class="text-center text-muted">No trading data</td></tr>';
+    }
+    
+    document.getElementById('weeklyStats').innerHTML = weeklyHtml;
+}
+
+function showDayTrades(day) {
+    if (!calendarData) return;
+    
+    const dayData = calendarData.days.find(d => d.day === day);
+    if (!dayData || dayData.count === 0) return;
+    
+    document.getElementById('modalDate').innerText = `${calendarData.month_name} ${day}, ${calendarData.year}`;
+    
+    const pnlClass = dayData.pnl > 0 ? 'profit-text' : (dayData.pnl < 0 ? 'loss-text' : '');
+    document.getElementById('dailyPnl').innerHTML = `<span class="${pnlClass}">$${dayData.pnl.toFixed(2)}</span>`;
+    document.getElementById('dailyCount').innerHTML = dayData.count;
+    
+    let tradeHtml = '';
+    dayData.trades.forEach((trade, index) => {
+        const tradeClass = trade.net_pnl > 0 ? 'profit' : 'loss';
+        const directionClass = trade.direction === 'long' ? 'long' : 'short';
+        const directionText = trade.direction === 'long' ? 'LONG' : (trade.direction === 'short' ? 'SHORT' : '');
+        
+        tradeHtml += `
+            <div class="trade-item ${tradeClass}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="trade-symbol">${trade.symbol || 'MISC'}</span>
+                        ${directionText ? `<span class="trade-direction ${directionClass} ms-2">${directionText}</span>` : ''}
+                        <div class="trade-time mt-1">
+                            <i class="far fa-clock me-1"></i>${trade.time || 'N/A'}
+                        </div>
+                    </div>
+                    <div class="trade-pnl ${trade.net_pnl > 0 ? 'profit-text' : 'loss-text'}">
+                        ${trade.net_pnl > 0 ? '+' : ''}$${trade.net_pnl.toFixed(2)}
+                        <small class="text-muted ms-1">(fees: $${trade.fees.toFixed(2)})</small>
+                    </div>
+                </div>
+                ${trade.notes ? `<div class="trade-notes"><i class="fas fa-sticky-note me-1"></i>${trade.notes}</div>` : ''}
+            </div>
+        `;
+    });
+    
+    document.getElementById('tradeList').innerHTML = tradeHtml || '<p class="text-center text-muted py-4">No trade details available</p>';
+    
+    const modal = new bootstrap.Modal(document.getElementById('tradeModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

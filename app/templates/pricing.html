@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 text-center mb-5">
+        <h1 class="display-4 fw-bold">
+            <i class="fas fa-crown text-warning"></i> Simple Pricing
+        </h1>
+        <p class="lead text-muted">One plan. All features. No surprises.</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header bg-primary text-white text-center py-4">
+                <h2 class="mb-0">TradeTracker Pro</h2>
+                <p class="mb-0 mt-2">Unlimited Access</p>
+            </div>
+            <div class="card-body p-4 text-center">
+                <div class="display-1 fw-bold text-primary">$2.99</div>
+                <div class="text-muted mb-4">per month</div>
+                
+                <div class="text-start mb-4">
+                    <h5><i class="fas fa-check-circle text-success"></i> Everything included:</h5>
+                    <ul class="list-unstyled mt-3">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Unlimited trading accounts</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Unlimited trade entries</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Screenshot uploads</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Strategy tags & analysis</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Emotion tracking</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Advanced metrics</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Trading calendar & charts</li>
+                    </ul>
+                </div>
+                
+                {% if current_user.is_authenticated %}
+                    {% if current_user.is_paid %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> You already have Pro access!
+                        </div>
+                        <a href="/" class="btn btn-primary btn-lg w-100">Go to Dashboard</a>
+                    {% else %}
+                        <form action="/create-checkout-session" method="POST">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-rocket"></i> Upgrade to Pro - $2.99/month
+                            </button>
+                        </form>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg w-100">
+                        Login to Upgrade
+                    </a>
+                    <p class="text-muted mt-3">Don't have an account? <a href="{{ url_for('auth.register') }}">Register for free</a></p>
+                {% endif %}
+            </div>
+            <div class="card-footer text-center bg-light">
+                <small class="text-muted">Cancel anytime • Secure payment via Stripe</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

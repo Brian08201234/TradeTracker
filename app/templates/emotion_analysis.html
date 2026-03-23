@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-4 fw-bold">
+            <i class="fas fa-face-smile text-primary"></i> Emotion Analysis
+        </h1>
+        <p class="lead text-muted">Understand how emotions affect your trading performance</p>
+    </div>
+</div>
+
+{% if emotion_stats %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-chart-line"></i> Emotion Performance Summary
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Emotion</th>
+                                <th>Trades</th>
+                                <th>Total P&L</th>
+                                <th>Win Rate</th>
+                                <th>Avg P&L</th>
+                                <th>Sharpe Ratio</th>
+                                <th>Max Drawdown</th>
+                            </thead>
+                            <tbody>
+                                {% for emotion, data in emotion_stats.items() %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ emotion_names.get(emotion, emotion) }}</strong>
+                                    </td>
+                                    <td>{{ data.count }}</td>
+                                    <td class="{% if data.total_pnl > 0 %}profit{% elif data.total_pnl < 0 %}loss{% endif %}">
+                                        ${{ "{:+,.2f}".format(data.total_pnl) }}
+                                    </td>
+                                    <td class="profit">{{ data.win_rate }}%</td>
+                                    <td class="{% if data.avg_pnl > 0 %}profit{% elif data.avg_pnl < 0 %}loss{% endif %}">
+                                        ${{ "{:+,.2f}".format(data.avg_pnl) }}
+                                    </td>
+                                    <td class="{% if data.sharpe > 1 %}profit{% elif data.sharpe < 0 %}loss{% endif %}">
+                                        {{ data.sharpe }}
+                                    </td>
+                                    <td class="loss">{{ data.max_drawdown }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-trophy"></i> Best Performing Emotions
+            </div>
+            <div class="card-body">
+                {% set positive_emotions = [] %}
+                {% for emotion, data in emotion_stats.items() %}
+                    {% if data.total_pnl > 0 %}
+                        {% set _ = positive_emotions.append((data.total_pnl, emotion, data)) %}
+                    {% endif %}
+                {% endfor %}
+                {% if positive_emotions %}
+                    {% set sorted = positive_emotions|sort(reverse=True) %}
+                    {% for pnl, emotion, data in sorted[:3] %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>{{ emotion_names.get(emotion, emotion) }}</strong>
+                            <span class="badge bg-success">+${{ "{:,.2f}".format(data.total_pnl) }}</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: {{ (data.total_pnl / sorted[0][0] * 100)|round(0) if sorted[0][0] > 0 else 0 }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ data.count }} trades, {{ data.win_rate }}% win rate</small>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">No profitable emotions yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <i class="fas fa-chart-line-down"></i> Worst Performing Emotions
+            </div>
+            <div class="card-body">
+                {% set negative_emotions = [] %}
+                {% for emotion, data in emotion_stats.items() %}
+                    {% if data.total_pnl < 0 %}
+                        {% set _ = negative_emotions.append((data.total_pnl, emotion, data)) %}
+                    {% endif %}
+                {% endfor %}
+                {% if negative_emotions %}
+                    {% set sorted = negative_emotions|sort %}
+                    {% for pnl, emotion, data in sorted[:3] %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>{{ emotion_names.get(emotion, emotion) }}</strong>
+                            <span class="badge bg-danger">${{ "{:+,.2f}".format(data.total_pnl) }}</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 6px;">
+                            <div class="progress-bar bg-danger" style="width: {{ (data.total_pnl / sorted[0][0] * 100)|abs|round(0) if sorted[0][0] < 0 else 0 }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ data.count }} trades, {{ data.win_rate }}% win rate</small>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">No losing emotions yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-white">
+                <i class="fas fa-lightbulb"></i> Emotional Trading Insights
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-chart-line text-success"></i> What's Working</h6>
+                        {% if positive_emotions %}
+                            {% set best = positive_emotions|sort(reverse=True)|first %}
+                            <p><strong>{{ emotion_names.get(best[1], best[1]) }}</strong> is your most profitable emotion with <strong>+${{ "{:,.2f}".format(best[0]) }}</strong> over {{ best[2].count }} trades.</p>
+                        {% else %}
+                            <p class="text-muted">Add more trades to see insights</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-chart-line-down text-danger"></i> What Needs Improvement</h6>
+                        {% if negative_emotions %}
+                            {% set worst = negative_emotions|sort|first %}
+                            <p><strong>{{ emotion_names.get(worst[1], worst[1]) }}</strong> is your worst performing emotion with <strong>${{ "{:+,.2f}".format(worst[0]) }}</strong> over {{ worst[2].count }} trades.</p>
+                        {% else %}
+                            <p class="text-muted">Keep up the good work!</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <hr>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Trading Psychology Tip:</strong> 
+                    {% if positive_emotions and negative_emotions %}
+                        Your best emotion ({{ emotion_names.get(best[1], best[1]) }}) outperforms your worst emotion ({{ emotion_names.get(worst[1], worst[1]) }}) by 
+                        <strong>${{ "{:,.2f}".format(best[0] - worst[0]) }}</strong>. 
+                        Try to identify what puts you in the right mindset and replicate it!
+                    {% else %}
+                        Start tracking your emotions to discover patterns in your trading psychology.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="card text-center">
+            <div class="card-body py-5">
+                <i class="fas fa-face-smile fa-4x text-muted mb-3"></i>
+                <h3>No Emotion Data Yet</h3>
+                <p class="text-muted">Start recording your emotions when adding trades to see analysis</p>
+                <a href="/add_trade" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus-circle"></i> Add Trade with Emotion
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

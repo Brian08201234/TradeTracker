@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-4 fw-bold">
+            <i class="fas fa-plus-circle text-success"></i> Add New Trade
+        </h1>
+        <p class="lead text-muted">Record your trading activity</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-edit"></i> Trade Details
+            </div>
+            <div class="card-body">
+                {% if not session.current_account %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Please <a href="/accounts" class="alert-link">select an account</a> first.
+                    </div>
+                {% endif %}
+                
+                <form action="/add_trade" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Profit/Loss *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control form-control-lg" name="pnl" step="0.01" required placeholder="e.g., 250.50 or -150.25">
+                        </div>
+                        <small class="text-muted">Positive for profit, negative for loss</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Symbol</label>
+                            <input type="text" class="form-control" name="symbol" placeholder="e.g., BTC, AAPL, EUR/USD">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Direction</label>
+                            <select class="form-control" name="direction">
+                                <option value="">Select Direction</option>
+                                <option value="long">📈 Long (Buy)</option>
+                                <option value="short">📉 Short (Sell)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Fees</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" name="fees" value="0" step="0.01">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-tags"></i> Strategy Tags
+                            </label>
+                            <input type="text" class="form-control" name="tags" placeholder="e.g., breakout, momentum, reversal">
+                            <small class="text-muted">Separate multiple tags with commas or spaces</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-smile"></i> Trade Emotion
+                            </label>
+                            <select class="form-control" name="emotion">
+                                <option value="">Select Emotion</option>
+                                <option value="calm">😌 Calm - Confident and relaxed</option>
+                                <option value="confident">😎 Confident - High conviction</option>
+                                <option value="excited">🤩 Excited - Euphoric, chasing gains</option>
+                                <option value="anxious">😰 Anxious - Worried about the trade</option>
+                                <option value="fearful">😨 Fearful - Scared to enter or exit</option>
+                                <option value="greedy">🤑 Greedy - Overtrading, adding to losers</option>
+                                <option value="impatient">⏰ Impatient - Exiting too early</option>
+                                <option value="hesitant">🤔 Hesitant - Indecisive, missed entries</option>
+                                <option value="frustrated">😤 Frustrated - After a loss streak</option>
+                                <option value="regretful">😞 Regretful - Missed opportunity</option>
+                            </select>
+                            <small class="text-muted">How did you feel during this trade?</small>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-comment"></i> Emotional Notes
+                            </label>
+                            <input type="text" class="form-control" name="emotion_notes" placeholder="e.g., FOMO, revenge trading, forced myself to hold">
+                            <small class="text-muted">Any additional emotional context</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Notes</label>
+                        <textarea class="form-control" name="notes" rows="3" placeholder="Add your trading notes, strategy used, market conditions, etc..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-camera"></i> Trade Screenshot
+                        </label>
+                        <div class="border rounded p-3 bg-light">
+                            <div class="text-center" id="uploadArea" style="cursor: pointer;">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-2"></i>
+                                <p class="mb-1">Click to upload or drag and drop</p>
+                                <small class="text-muted">Supported: PNG, JPG, JPEG, GIF (Max 5MB)</small>
+                                <input type="file" id="screenshot" name="screenshot" accept="image/*" style="display: none;">
+                            </div>
+                            <div id="previewArea" class="mt-3 text-center" style="display: none;">
+                                <img id="imagePreview" src="" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                                <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeImage()">
+                                    <i class="fas fa-times"></i> Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <button type="submit" class="btn btn-success btn-lg" {% if not session.current_account %}disabled{% endif %}>
+                        <i class="fas fa-save"></i> Save Trade
+                    </button>
+                    <a href="/" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-lightbulb"></i> Quick Tips
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="alert alert-success">
+                        <i class="fas fa-chart-line"></i>
+                        <strong>Profit Example:</strong><br>
+                        $250.50
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-chart-line"></i>
+                        <strong>Loss Example:</strong><br>
+                        -$150.25
+                    </div>
+                </div>
+                <hr>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Net P&L =</strong> Profit/Loss - Fees
+                </div>
+                <div class="alert alert-primary">
+                    <i class="fas fa-tags"></i>
+                    <strong>Tag Examples:</strong><br>
+                    breakout, momentum, reversal, scalping, swing, news
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="fas fa-chart-simple"></i> Current Account
+            </div>
+            <div class="card-body">
+                {% if session.current_account %}
+                    <p class="mb-0">
+                        <strong>Active Account:</strong><br>
+                        <span class="h4 text-primary">{{ session.current_account }}</span>
+                    </p>
+                    <hr>
+                    <a href="/accounts" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="fas fa-exchange-alt"></i> Switch Account
+                    </a>
+                {% else %}
+                    <p class="text-muted mb-0">No account selected</p>
+                    <a href="/accounts" class="btn btn-primary btn-sm mt-2 w-100">
+                        Select Account
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('screenshot');
+const previewArea = document.getElementById('previewArea');
+const imagePreview = document.getElementById('imagePreview');
+
+uploadArea.addEventListener('click', () => {
+    fileInput.click();
+});
+
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.src = e.target.result;
+            uploadArea.style.display = 'none';
+            previewArea.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+function removeImage() {
+    fileInput.value = '';
+    uploadArea.style.display = 'block';
+    previewArea.style.display = 'none';
+    imagePreview.src = '';
+}
+
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.style.border = '2px dashed #007bff';
+    uploadArea.style.backgroundColor = '#e7f1ff';
+});
+
+uploadArea.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    uploadArea.style.border = '1px solid #dee2e6';
+    uploadArea.style.backgroundColor = '#f8f9fa';
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.style.border = '1px solid #dee2e6';
+    uploadArea.style.backgroundColor = '#f8f9fa';
+    
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        fileInput.files = e.dataTransfer.files;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.src = e.target.result;
+            uploadArea.style.display = 'none';
+            previewArea.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
+{% endblock %}
