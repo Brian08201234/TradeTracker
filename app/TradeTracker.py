@@ -4,6 +4,12 @@ try:
 except ImportError:
     HAS_PANDAS = False
     print("Warning: pandas not available. Some features will be limited.")
+    class DummyDataFrame:
+        def __getattr__(self, name):
+            return self
+        def __call__(self, *args, **kwargs):
+            return self
+    pd = DummyDataFrame()
 
 try:
     import numpy as np
@@ -121,6 +127,8 @@ class TradeAnalyzer:
         return account_id
 
     def _ensure_account_file(self, account_id):
+        if not HAS_PANDAS:
+            return
         """Ensure account's trade file exists"""
         account_file = os.path.join(self.data_dir, f"{account_id}_trades.csv")
         if not os.path.exists(account_file):
