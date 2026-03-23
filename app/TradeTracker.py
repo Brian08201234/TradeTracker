@@ -1,19 +1,9 @@
-
 try:
     import pandas as pd
-    
-try:
-    import numpy as np
-    HAS_NUMPY = True
-except ImportError:
-    HAS_NUMPY = False
-    print("Warning: numpy not available")
-
     HAS_PANDAS = True
 except ImportError:
     HAS_PANDAS = False
     print("Warning: pandas not available. Some features will be limited.")
-
 
 try:
     import numpy as np
