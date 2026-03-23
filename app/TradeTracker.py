@@ -15,6 +15,7 @@ except ImportError:
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.font_manager import FontProperties
+from matplotlib.font_manager import FontProperties
 import calendar
 from datetime import datetime, timedelta
 import os
@@ -235,8 +236,8 @@ class TradeAnalyzer:
             except ValueError:
                 print("❌ Please enter a valid number")
 
-    
-    
+
+
     def add_trade(self, pnl, symbol='', direction='', fees=0, notes='', account_id=None, tags='', emotion='', emotion_notes=''):
         """
         添加交易到指定帳戶
@@ -248,19 +249,19 @@ class TradeAnalyzer:
             account_id = self.select_account_interactive("Please select account")
             if account_id is None:
                 return False
-        
+
         if account_id not in self.accounts:
             print(f"❌ Account {account_id} not found")
             return False
-        
+
         account = self.accounts[account_id]
         account_file = os.path.join(self.data_dir, f"{account_id}_trades.csv")
-        
+
         if os.path.exists(account_file):
             df = pd.read_csv(account_file)
         else:
             df = pd.DataFrame(columns=['id', 'date', 'symbol', 'direction', 'pnl', 'fees', 'net_pnl', 'notes', 'tags', 'emotion', 'emotion_notes'])
-        
+
         new_trade = {
             'id': len(df) + 1,
             'date': datetime.now().strftime('%Y-%m-%d %H:%M'),
@@ -274,20 +275,20 @@ class TradeAnalyzer:
             'emotion': emotion,
             'emotion_notes': emotion_notes
         }
-        
+
         df = pd.concat([df, pd.DataFrame([new_trade])], ignore_index=True)
         df.to_csv(account_file, index=False)
-        
+
         self.accounts[account_id].current_balance += new_trade['net_pnl']
         self.save_accounts()
-        
+
         status = "profit" if new_trade['net_pnl'] > 0 else "loss" if new_trade['net_pnl'] < 0 else "breakeven"
         print(f"✅ [{account.name}] Trade added: {status} ${abs(new_trade['net_pnl']):,.2f}")
         if tags:
             print(f"   Tags: {tags}")
         if emotion:
             print(f"   Emotion: {emotion}")
-        
+
         return True
 
 
@@ -1033,10 +1034,10 @@ if __name__ == "__main__":
         if account_id not in self.accounts:
             print(f"❌ Account {account_id} not found")
             return False
-        
+
         account = self.accounts[account_id]
         account_file = os.path.join(self.data_dir, f"{account_id}_trades.csv")
-        
+
         # 確認刪除
         if confirm:
             print(f"\n⚠️  Delete account: {account.name} [{account_id}]")
@@ -1046,18 +1047,18 @@ if __name__ == "__main__":
             if response != 'YES':
                 print("❌ Deletion cancelled")
                 return False
-        
+
         # 刪除交易文件
         if os.path.exists(account_file):
             os.remove(account_file)
-        
+
         # 從 accounts 字典中刪除
         del self.accounts[account_id]
-        
+
         # 更新 accounts.json
         self.save_accounts()
-        
+
         print(f"✅ Account {account.name} deleted successfully")
-        
+
         # 如果刪除的是當前帳戶，清除 session
         return True
