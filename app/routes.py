@@ -5,14 +5,14 @@ from app.TradeTracker import TradeAnalyzer
 import os
 
 try:
-    import pandas as pd
-    import numpy as np
+    # pandas removed for deployment
+    # numpy removed for deployment
     HAS_PANDAS = True
 except ImportError:
     HAS_PANDAS = False
     print("Warning: pandas not available")
 
-import numpy as np
+# numpy removed for deployment
 from datetime import datetime
 import calendar as cal
 from werkzeug.utils import secure_filename
@@ -51,17 +51,21 @@ def get_analyzer():
 
 # ==================== 計算函數 ====================
 
+
 def calculate_sharpe_ratio(returns, risk_free_rate=0.02):
+    """計算夏普比率（簡化版）"""
     if len(returns) < 2:
         return 0
     filtered = [r for r in returns if r != 0]
     if len(filtered) < 2:
         return 0
-    mean_return = np.mean(filtered)
-    std_return = np.std(filtered)
+    mean_return = sum(filtered) / len(filtered)
+    # 計算標準差
+    variance = sum((r - mean_return) ** 2 for r in filtered) / len(filtered)
+    std_return = variance ** 0.5
     if std_return == 0:
         return 0
-    sharpe = (mean_return - risk_free_rate/252) / std_return * np.sqrt(252)
+    sharpe = (mean_return - risk_free_rate/252) / std_return * (252 ** 0.5)
     return round(sharpe, 2)
 
 def calculate_max_drawdown(returns):
