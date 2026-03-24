@@ -693,8 +693,8 @@ class TradeAnalyzer:
         print(f"  Account Balance: ${account.current_balance:+,.2f}")
 
     def generate_monthly_calendar(self, year, month, account_id=None, save_path=None):
-    if not HAS_MATPLOTLIB:
-        print("Matplotlib not available, calendar disabled")
+        if not HAS_MATPLOTLIB:
+            print("Matplotlib not available, calendar disabled")
         return False
         """
         Generate monthly trading calendar (specify account)
