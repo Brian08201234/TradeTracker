@@ -31,6 +31,12 @@ def create_app():
     app.register_blueprint(routes.bp)
     app.register_blueprint(auth.bp)
     
+    
+    # 創建數據庫表（如果不存在）
+    with app.app_context():
+        db.create_all()
+        print("Database tables created/verified")
+
     return app
 
 @login_manager.user_loader
