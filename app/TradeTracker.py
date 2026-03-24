@@ -18,9 +18,17 @@ except ImportError:
     HAS_NUMPY = False
     print("Warning: numpy not available")
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.font_manager import FontProperties
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    from matplotlib.font_manager import FontProperties
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+    print("Warning: matplotlib not available")
+    plt = None
+    mpatches = None
+    FontProperties = None
 from matplotlib.font_manager import FontProperties
 import calendar
 from datetime import datetime, timedelta
@@ -685,6 +693,9 @@ class TradeAnalyzer:
         print(f"  Account Balance: ${account.current_balance:+,.2f}")
 
     def generate_monthly_calendar(self, year, month, account_id=None, save_path=None):
+    if not HAS_MATPLOTLIB:
+        print("Matplotlib not available, calendar disabled")
+        return False
         """
         Generate monthly trading calendar (specify account)
         """
