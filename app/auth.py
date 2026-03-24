@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
-from app.models import User
+from app.models import User, db
 from app.TradeTracker import TradeAnalyzer
 import os
 
@@ -15,7 +15,7 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        user = User.find_by_username(username)
+        user = User.query.filter_by(username=username).first()
         
         if user and user.check_password(password):
             login_user(user)
@@ -62,16 +62,19 @@ def register():
             flash('Password must be at least 6 characters', 'danger')
             return redirect(url_for('auth.register'))
         
-        if User.find_by_username(username):
+        if User.query.filter_by(username=username).first():
             flash('Username already exists', 'danger')
             return redirect(url_for('auth.register'))
         
-        if User.find_by_email(email):
+        if User.query.filter_by(email=email).first():
             flash('Email already registered', 'danger')
             return redirect(url_for('auth.register'))
         
         try:
-            user = User.create(username, email, password)
+            user = User(username=username, email=email)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
             
             user_data_dir = f'user_data/{user.id}'
             os.makedirs(user_data_dir, exist_ok=True)
@@ -104,13 +107,13 @@ def update_profile():
     default_currency = request.form.get('default_currency', 'USD')
     
     if email and email != current_user.email:
-        if User.find_by_email(email):
+        if User.query.filter_by(email=email).first():
             flash('Email already in use', 'danger')
             return redirect(url_for('auth.profile'))
         current_user.email = email
     
     current_user.default_currency = default_currency
-    current_user.save()
+    db.session.commit()
     
     flash('Profile updated successfully', 'success')
     return redirect(url_for('auth.profile'))
@@ -135,7 +138,7 @@ def change_password():
         return redirect(url_for('auth.profile'))
     
     current_user.set_password(new_password)
-    current_user.save()
+    db.session.commit()
     
     flash('Password changed successfully', 'success')
     return redirect(url_for('auth.profile'))
@@ -156,7 +159,7 @@ def change_username():
         return redirect(url_for('auth.profile'))
     
     current_user.username = new_username
-    current_user.save()
+    db.session.commit()
     
     flash('Username updated successfully!', 'success')
     return redirect(url_for('auth.profile'))
