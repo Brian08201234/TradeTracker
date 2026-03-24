@@ -684,7 +684,7 @@ def equity_curve():
             print(f"Subscription: {subscription.id}, Status: {subscription.status}")
         
         # 保存用戶
-        current_user.save()
+        db.session.commit()
         print(f"✅ User {current_user.username} upgraded to Pro!")
         
         flash('Payment successful! You now have Pro access.', 'success')
@@ -726,7 +726,7 @@ def stripe_webhook():
         # 獲取用戶 ID
         user_id = session.get('client_reference_id')
         if user_id:
-            from app.models import User
+            from app.models import User, db
             user = User.get(int(user_id))
             if user:
                 user.is_paid = True
@@ -746,6 +746,6 @@ def stripe_webhook():
 def payment_success():
     """支付成功頁面 - 直接升級用戶"""
     current_user.is_paid = True
-    current_user.save()
+    db.session.commit()
     flash('Payment successful! You now have Pro access.', 'success')
     return redirect(url_for('main.index'))
